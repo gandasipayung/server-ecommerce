@@ -62,8 +62,8 @@ module.exports = (sequelize, DataTypes) => {
           msg: 'Stock must be a number'
         },
         min: {
-          args: 10,
-          msg: 'Stock minimal is 10'
+          args: -1,
+          msg: 'Stock minimal is 0'
         }
       }
     },

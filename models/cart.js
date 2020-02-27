@@ -12,7 +12,12 @@ module.exports = (sequelize, DataTypes) => {
   Cart.init({
     UserId: DataTypes.INTEGER,
     ProductId: DataTypes.INTEGER,
-    quantity: DataTypes.INTEGER,
+    quantity: {
+      type: DataTypes.INTEGER,
+      validate: {
+        min: 1
+      }
+    },
     checkout: DataTypes.BOOLEAN
   },{
     sequelize

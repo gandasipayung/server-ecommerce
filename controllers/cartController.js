@@ -72,6 +72,83 @@ class CartController {
       })
       .catch(next)
   }
+
+  static getTransactions (req, res, next) {
+    Cart
+      .findAll({
+        where: {
+          UserId: req.currentUserId,
+          checkout: true
+        },
+        include: {
+          model: Product
+        }
+      })
+      .then(data => {
+        res.status(200).json(data)
+      })
+      .catch(next)
+  }
+
+  static deleteCart (req, res, next) {
+    Cart
+      .destroy({
+        where: {
+          id: req.params.id
+        }
+      })
+      .then(result => {
+        res.status(200).json(result)
+      })
+      .catch(next)
+  }
+
+  static checkoutUpdate (req, res, next) {
+    const { carts } = req.body
+    console.log(carts)
+    const err = []
+    const promises = []
+    let updatestock
+    carts.forEach(cart => {
+      if(cart.quantity >= cart.Product.stock) {
+        err.push('Failed')
+      } else {
+        updatestock = cart.Product.stock - cart.quantity
+        promises.push(
+          Cart
+            .update({
+              checkout: true
+            }, {
+              where: {
+                id: cart.id
+              }
+            }),
+            Product
+              .update({
+                stock: updatestock
+              }, {
+                where: {
+                  id: cart.ProductId
+                }
+              })
+        )
+      }
+    })
+
+    if ( err.length === 0 ) {
+      Promise.all(promises)
+        .then(result => {
+          res.status(200).json({
+            msg: 'Payment Success'
+          })
+        })
+        .catch(next)
+    } else {
+      next({
+        msg: 'Payment Error'
+      })
+    }
+  }
 }
 
 module.exports = CartController
