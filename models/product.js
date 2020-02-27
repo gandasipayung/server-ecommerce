@@ -76,3 +76,5 @@ module.exports = (sequelize, DataTypes) => {
 
   return Product;
 };
+
+//  custom hooks create boleh nol update ga boleh nol

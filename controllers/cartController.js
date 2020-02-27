@@ -1,4 +1,4 @@
-const { Cart, Product, User } = require('../models')
+const { Cart, Product, User, sequelize } = require('../models')
 
 class CartController {
   static addCart (req, res, next) {
@@ -104,50 +104,40 @@ class CartController {
   }
 
   static checkoutUpdate (req, res, next) {
-    const { carts } = req.body
-    console.log(carts)
-    const err = []
-    const promises = []
-    let updatestock
-    carts.forEach(cart => {
-      if(cart.quantity >= cart.Product.stock) {
-        err.push('Failed')
-      } else {
-        updatestock = cart.Product.stock - cart.quantity
-        promises.push(
-          Cart
-            .update({
-              checkout: true
-            }, {
-              where: {
-                id: cart.id
-              }
-            }),
-            Product
-              .update({
-                stock: updatestock
-              }, {
-                where: {
-                  id: cart.ProductId
-                }
-              })
-        )
-      }
-    })
-
-    if ( err.length === 0 ) {
-      Promise.all(promises)
-        .then(result => {
-          res.status(200).json({
-            msg: 'Payment Success'
-          })
-        })
-        .catch(next)
-    } else {
-      next({
-        msg: 'Payment Error'
+    Cart
+      .findAll({
+        where: {
+          UserId: req.currentUserId,
+          checkout: false
+        },
+        include: {
+          model: Product
+        }
       })
-    }
+      .then(carts => {
+        return sequelize.transaction((t) => {
+          const promises = []
+          let updatestock
+          for (let i = 0; i < carts.length; i++) {
+            if(carts[i].quantity > carts[i].Product.stock) {
+              throw new Error ()
+            } else {
+              updatestock = carts[i].Product.stock - carts[i].quantity
+              promises.push(
+                Cart.update({ checkout: true }, { where: { id: carts[i].id }, transaction: t }),
+                Product.update({ stock: updatestock }, { where: { id: carts[i].ProductId }, transaction: t })
+              )
+            }
+          }
+          return Promise.all(promises)
+        })
+      })
+      .then(result => {
+        res.status(200).json({
+          msg: 'Transaction Success'
+        })
+      })
+      .catch(next)
   }
 }
 
